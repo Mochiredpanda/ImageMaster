@@ -5,8 +5,9 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QPixmap, QDragEnterEvent, QDropEvent
 from PyQt5.QtCore import Qt
-from PIL import Image
+from PIL import Image, ImageOps
 import os
+import tempfile
 
 # Image Snapshot
 class ImageCard(QLabel):
@@ -80,9 +81,14 @@ class ImageMergerApp(QWidget):
             self.add_image(f)
 
     def add_image(self, path):
-        self.images.append(path)
-        # Add preview before the "+" button
-        thumbnail = ImageCard(path)
+        img = Image.open(path)
+        img = ImageOps.exif_transpose(img) # show correct orientation
+
+        temp_file = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False)
+        img.save(temp_file.name)
+
+        self.images.append(temp_file.name)
+        thumbnail = ImageCard(temp_file.name)
         self.image_layout.insertWidget(self.image_layout.count() - 1, thumbnail)
 
     def merge_images(self):
