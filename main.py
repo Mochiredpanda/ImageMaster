@@ -17,7 +17,7 @@ class ImageCard(QLabel):
         self.setPixmap(QPixmap(image_path).scaled(120, 120, Qt.KeepAspectRatio))
         self.image_path = image_path
 
-class ImageMergerApp(QWidget):
+class ImageMerger(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Image Merger")
@@ -26,14 +26,14 @@ class ImageMergerApp(QWidget):
 
         main_layout = QVBoxLayout()
 
-        # === SCROLL AREA FOR IMAGE THUMBNAILS ===
+        # === SCROLLABLE IMAGE PREVIEWS ===
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll_content = QWidget()
         self.image_layout = QHBoxLayout(scroll_content)
         self.image_layout.setContentsMargins(10, 10, 10, 10)
 
-        # Initial + button
+        # Initial "+" button
         self.add_button = QPushButton("+")
         self.add_button.setFixedSize(100, 100)
         self.add_button.clicked.connect(self.load_images)
@@ -64,7 +64,7 @@ class ImageMergerApp(QWidget):
 
         self.setLayout(main_layout)
 
-    # === DRAG-AND-DROP ===
+    # === DRAG-AND-DROP METHODS===
     def dragEnterEvent(self, event: QDragEnterEvent):
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
@@ -119,7 +119,7 @@ class ImageMergerApp(QWidget):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = ImageMergerApp()
+    window = ImageMerger()
     window.resize(600, 700)
     window.show()
     sys.exit(app.exec_())
