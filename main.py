@@ -13,8 +13,8 @@ import tempfile
 class ImageCard(QLabel):
     def __init__(self, image_path):
         super().__init__()
-        self.setFixedSize(100, 100)
-        self.setPixmap(QPixmap(image_path).scaled(100, 100, Qt.KeepAspectRatio))
+        self.setFixedSize(120, 120)
+        self.setPixmap(QPixmap(image_path).scaled(120, 120, Qt.KeepAspectRatio))
         self.image_path = image_path
 
 class ImageMergerApp(QWidget):
