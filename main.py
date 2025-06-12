@@ -1,13 +1,25 @@
+"""
+ImageMaster
+
+A lightweight desktop GUI app to preview edit images.
+
+Current Features:
+- ImageMerger: Add images and merge vertically or horizontally.
+
+Author: Jiyu H.(Mochiredpanda)
+Date: JUN 12, 2025
+License: MIT
+Version: 1.0.1
+"""
+
 import sys
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout,
-    QFileDialog, QRadioButton, QComboBox, QButtonGroup, QScrollArea, 
-    QFrame
+    QFileDialog, QRadioButton, QComboBox, QScrollArea
 )
 from PyQt5.QtGui import QPixmap, QDragEnterEvent, QDropEvent
 from PyQt5.QtCore import Qt
 from PIL import Image, ImageOps
-import os
 import tempfile
 
 # Image Snapshot
@@ -28,6 +40,7 @@ class ImageMerger(QWidget):
         # === MAIN CONTAINER ===
         main_layout = QHBoxLayout()
 
+        # TODO: Fix + button align center after images added
         # == LEFT: Scrollable Preview List ==
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
