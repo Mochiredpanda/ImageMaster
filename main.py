@@ -1,7 +1,7 @@
 import sys
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout,
-    QFileDialog, QRadioButton, QButtonGroup, QScrollArea, QFrame
+    QFileDialog, QRadioButton, QComboBox, QButtonGroup, QScrollArea, QFrame
 )
 from PyQt5.QtGui import QPixmap, QDragEnterEvent, QDropEvent
 from PyQt5.QtCore import Qt
@@ -63,6 +63,11 @@ class ImageMerger(QWidget):
         main_layout.addWidget(self.preview)
 
         self.setLayout(main_layout)
+        
+        # Output options
+        self.format_box = QComboBox()
+        self.format_box.addItems(["PNG (default)", "JPG (fast, small)", "WEBP (efficient)"])
+        btn_layout.addWidget(self.format_box)
 
     # === DRAG-AND-DROP METHODS===
     def dragEnterEvent(self, event: QDragEnterEvent):
@@ -81,16 +86,18 @@ class ImageMerger(QWidget):
             self.add_image(f)
 
     # Input Image:
-    #   Use RGBA and PNG as base format
+    #   Use RGBA and PNG as base format, only load previews
     def add_image(self, path):
         try:
-            img = Image.open(path).convert("RGBA")
-            img = ImageOps.exif_transpose(img) # Fix orientation
-
+            self.images.append(path)
+            
+            # generate previews
+            preview = Image.open(path)
+            preview = ImageOps.exif_transpose(preview) # Fix orientation
+            preview.thumbnail((120, 120))
             temp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
-            img.save(temp.name, format="PNG")
+            preview.save(temp.name, format="PNG")
 
-            self.images.append(temp.name)
             thumbnail = ImageCard(temp.name)
             self.image_layout.insertWidget(self.image_layout.count() - 1, thumbnail)
         
@@ -129,9 +136,28 @@ class ImageMerger(QWidget):
                 new_img.paste(scaled, (x_offset, 0), scaled)
                 x_offset += scaled.width
 
-        merged_path = "merged_output.jpg"
-        new_img.save(merged_path, format="PNG")
-        self.preview.setPixmap(QPixmap(merged_path).scaled(400, 400, Qt.KeepAspectRatio))
+        # fast previews
+        preview = new_img.copy()
+        preview.thumbnail((800, 800))
+        preview_rgb = preview.convert("RGB")
+        preview_rgb.save("merged_preview.jpg", format="JPEG")
+        self.preview.setPixmap(QPixmap('merged_preview.jpg').scaled(400, 400, Qt.KeepAspectRatio))
+        
+            
+        label_to_format = {
+            "PNG (Lossless)": "PNG",
+            "JPG (Fast, Small)": "JPEG",
+            "WebP (Efficient)": "WEBP"
+        }
+        chosen_label = self.format_box.currentText()
+        chosen_format = label_to_format.get(chosen_label, "PNG")
+        ext = chosen_format.lower()
+        merged_path = f"merged_output.{ext}"
+        
+        # if chosen_format.upper() == "JPEG":
+        #     new_img = new_img.convert("RGB")
+            
+        new_img.save(merged_path, format=chosen_format)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
