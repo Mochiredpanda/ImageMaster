@@ -80,7 +80,7 @@ class ImageMerger(QWidget):
         for f in files:
             self.add_image(f)
 
-    # Process Image:
+    # Input Image:
     #   Use RGBA and PNG as base format
     def add_image(self, path):
         try:
@@ -96,31 +96,41 @@ class ImageMerger(QWidget):
         
         except Exception as e:
             print(f"Failed to load image {path}: {e}")  
-        
+      
+    # Output Image:
+    #   Use max_width / max_height as base size
     def merge_images(self):
         if not self.images:
             return
 
-        imgs = [Image.open(p) for p in self.images]
+        imgs = [Image.open(p).convert("RGBA") for p in self.images]
+        
+        # Vertical
         if self.vertical_radio.isChecked():
             max_width = max(img.width for img in imgs)
             total_height = sum(img.height for img in imgs)
-            new_img = Image.new("RGB", (max_width, total_height))
+            new_img = Image.new("RGBA", (max_width, total_height), (255, 255, 255, 0))
+            
             y_offset = 0
             for img in imgs:
-                new_img.paste(img, (0, y_offset))
-                y_offset += img.height
+                scaled = img.resize((max_width, int(img.height * (max_width / img.width))))
+                new_img.paste(scaled, (0, y_offset), scaled)
+                y_offset += scaled.height
+        
+        # Horizontal
         else:
             max_height = max(img.height for img in imgs)
             total_width = sum(img.width for img in imgs)
             new_img = Image.new("RGB", (total_width, max_height))
+            
             x_offset = 0
             for img in imgs:
-                new_img.paste(img, (x_offset, 0))
-                x_offset += img.width
+                scaled = img.resize(int(img.width * (max_height / img.height)), max_height)
+                new_img.paste(scaled, (x_offset, 0), scaled)
+                x_offset += scaled.width
 
         merged_path = "merged_output.jpg"
-        new_img.save(merged_path)
+        new_img.save(merged_path, format="PNG")
         self.preview.setPixmap(QPixmap(merged_path).scaled(400, 400, Qt.KeepAspectRatio))
 
 if __name__ == "__main__":
