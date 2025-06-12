@@ -108,7 +108,7 @@ class ImageMerger(QWidget):
         # Vertical
         if self.vertical_radio.isChecked():
             max_width = max(img.width for img in imgs)
-            total_height = sum(img.height for img in imgs)
+            total_height = sum(int(img.height * (max_width / img.width)) for img in imgs)
             new_img = Image.new("RGBA", (max_width, total_height), (255, 255, 255, 0))
             
             y_offset = 0
@@ -120,12 +120,12 @@ class ImageMerger(QWidget):
         # Horizontal
         else:
             max_height = max(img.height for img in imgs)
-            total_width = sum(img.width for img in imgs)
-            new_img = Image.new("RGB", (total_width, max_height))
+            total_width = sum(int(img.width * (max_height / img.height)) for img in imgs)
+            new_img = Image.new("RGBA", (total_width, max_height), (255, 255, 255, 0))
             
             x_offset = 0
             for img in imgs:
-                scaled = img.resize(int(img.width * (max_height / img.height)), max_height)
+                scaled = img.resize((int(img.width * (max_height / img.height)), max_height))
                 new_img.paste(scaled, (x_offset, 0), scaled)
                 x_offset += scaled.width
 
