@@ -1,7 +1,8 @@
 import sys
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout,
-    QFileDialog, QRadioButton, QComboBox, QButtonGroup, QScrollArea, QFrame
+    QFileDialog, QRadioButton, QComboBox, QButtonGroup, QScrollArea, 
+    QFrame
 )
 from PyQt5.QtGui import QPixmap, QDragEnterEvent, QDropEvent
 from PyQt5.QtCore import Qt
@@ -24,54 +25,97 @@ class ImageMerger(QWidget):
         self.setAcceptDrops(True)
         self.images = []
 
-        main_layout = QVBoxLayout()
+        # === MAIN CONTAINER ===
+        main_layout = QHBoxLayout()
 
-        # === SCROLLABLE IMAGE PREVIEWS ===
+        # == LEFT: Scrollable Preview List ==
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll_content = QWidget()
-        self.image_layout = QHBoxLayout(scroll_content)
+        scroll.setMinimumWidth(150)
+        scroll.setMaximumWidth(180)
+        # scroll.setFixedWidth(160)
+        self.image_layout = QVBoxLayout(scroll_content)
         self.image_layout.setContentsMargins(10, 10, 10, 10)
-
+        
         # Initial "+" button
         self.add_button = QPushButton("+")
         self.add_button.setFixedSize(100, 100)
         self.add_button.clicked.connect(self.load_images)
+        self.image_layout.setAlignment(Qt.AlignTop | Qt.AlignHCenter)
+        self.image_layout.addSpacing(20)
         self.image_layout.addWidget(self.add_button)
-
+        
         scroll.setWidget(scroll_content)
-        main_layout.addWidget(scroll)
+        main_layout.addWidget(scroll, 1)
 
-        # TODO: Re-arrange the button layouts
-        # === MERGE BUTTON & ORIENTATION OPTIONS ===
+        # === RIGHT: Output Preview + Buttons ===
+        right_col_layout = QVBoxLayout()
+        
+        # == Output Preview Area ==
+        self.preview = QLabel("Merged image preview")
+        self.preview.setFixedSize(500, 500)
+        self.preview.setAlignment(Qt.AlignCenter)
+        self.preview.setStyleSheet("border: 1px solid gray;")
+        
+        preview_wrapper = QHBoxLayout()
+        preview_wrapper.addStretch()
+        preview_wrapper.addWidget(self.preview)
+        preview_wrapper.addStretch()
+        
+        right_col_layout.addLayout(preview_wrapper)
+        
+        # == Buttons and Options ==
+        btm_wrapper = QVBoxLayout() # pins to bottom
         btn_layout = QHBoxLayout()
-        self.merge_btn = QPushButton("Merge")
-        self.save_btn = QPushButton("Save as")
-        self.merge_btn.clicked.connect(self.merge_images)
-        self.save_btn.clicked.connect(self.save_image_as)
-        btn_layout.addWidget(self.merge_btn)
-        btn_layout.addWidget(self.save_btn)
-
+        
+        # = Orientation = 
+        # V + H rodio btns
+        orientation_layout = QVBoxLayout()
         self.vertical_radio = QRadioButton("Vertical")
         self.horizontal_radio = QRadioButton("Horizontal")
         self.vertical_radio.setChecked(True)
-        btn_layout.addWidget(self.vertical_radio)
-        btn_layout.addWidget(self.horizontal_radio)
-
-        main_layout.addLayout(btn_layout)
-
-        # === PREVIEW AREA ===
-        self.preview = QLabel("Merged image preview")
-        self.preview.setFixedSize(400, 400)
-        self.preview.setStyleSheet("border: 1px solid gray;")
-        main_layout.addWidget(self.preview)
-
-        self.setLayout(main_layout)
+        orientation_layout.addWidget(self.vertical_radio)
+        orientation_layout.addWidget(self.horizontal_radio)
         
-        # Output options
+        # Wrap in Qwidget, add to outer layout
+        orientation_widget = QWidget()
+        orientation_widget.setLayout(orientation_layout)
+        btn_layout.addWidget(orientation_widget)
+
+        # = Merge Button = 
+        merge_wrapper = QVBoxLayout()
+        self.merge_btn = QPushButton("Merge")
+        self.merge_btn.setFixedHeight(40)
+        self.merge_btn.setFixedWidth(100)
+        merge_wrapper.addStretch()
+        merge_wrapper.addWidget(self.merge_btn, alignment=Qt.AlignCenter)
+        merge_wrapper.addStretch()
+        btn_layout.addLayout(merge_wrapper)
+        
+        # = Save-as =
+        self.save_btn = QPushButton("Save as")
+        self.save_btn.setFixedHeight(40)
+        self.save_btn.setFixedWidth(100)
+        btn_layout.addWidget(self.save_btn)
+        
         self.format_box = QComboBox()
         self.format_box.addItems(["PNG (default)", "JPG (fast, small)", "WEBP (efficient)"])
         btn_layout.addWidget(self.format_box)
+        
+        self.merge_btn.clicked.connect(self.merge_images)
+        self.save_btn.clicked.connect(self.save_image_as)
+
+        btm_wrapper.addStretch()
+        btm_wrapper.addLayout(btn_layout)
+        
+        right_col_layout.addLayout(btm_wrapper)
+        
+        # === add main layout ===
+        
+        main_layout.addLayout(right_col_layout, 3)
+        
+        self.setLayout(main_layout)
 
     # === DRAG-AND-DROP METHODS===
     def dragEnterEvent(self, event: QDragEnterEvent):
