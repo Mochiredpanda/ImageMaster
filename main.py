@@ -72,7 +72,7 @@ class ImageMerger(QWidget):
     def dropEvent(self, event: QDropEvent):
         for url in event.mimeData().urls():
             path = url.toLocalFile()
-            if path.lower().endswith(('.png', '.jpg', '.jpeg')):
+            if path.lower().endswith(('.png', '.jpg', '.jpeg', 'webp')):
                 self.add_image(path)
 
     def load_images(self):
@@ -80,17 +80,23 @@ class ImageMerger(QWidget):
         for f in files:
             self.add_image(f)
 
+    # Process Image:
+    #   Use RGBA and PNG as base format
     def add_image(self, path):
-        img = Image.open(path)
-        img = ImageOps.exif_transpose(img) # show correct orientation
+        try:
+            img = Image.open(path).convert("RGBA")
+            img = ImageOps.exif_transpose(img) # Fix orientation
 
-        temp_file = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False)
-        img.save(temp_file.name)
+            temp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+            img.save(temp.name, format="PNG")
 
-        self.images.append(temp_file.name)
-        thumbnail = ImageCard(temp_file.name)
-        self.image_layout.insertWidget(self.image_layout.count() - 1, thumbnail)
-
+            self.images.append(temp.name)
+            thumbnail = ImageCard(temp.name)
+            self.image_layout.insertWidget(self.image_layout.count() - 1, thumbnail)
+        
+        except Exception as e:
+            print(f"Failed to load image {path}: {e}")  
+        
     def merge_images(self):
         if not self.images:
             return
