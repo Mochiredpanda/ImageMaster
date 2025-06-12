@@ -42,11 +42,15 @@ class ImageMerger(QWidget):
         scroll.setWidget(scroll_content)
         main_layout.addWidget(scroll)
 
+        # TODO: Re-arrange the button layouts
         # === MERGE BUTTON & ORIENTATION OPTIONS ===
         btn_layout = QHBoxLayout()
         self.merge_btn = QPushButton("Merge")
+        self.save_btn = QPushButton("Save as")
         self.merge_btn.clicked.connect(self.merge_images)
+        self.save_btn.clicked.connect(self.save_image_as)
         btn_layout.addWidget(self.merge_btn)
+        btn_layout.addWidget(self.save_btn)
 
         self.vertical_radio = QRadioButton("Vertical")
         self.horizontal_radio = QRadioButton("Horizontal")
@@ -104,12 +108,15 @@ class ImageMerger(QWidget):
         except Exception as e:
             print(f"Failed to load image {path}: {e}")  
       
+    # TODO: Fix the preview file saved to destination issue
     # Output Image:
     #   Use max_width / max_height as base size
     def merge_images(self):
         if not self.images:
             return
 
+        self.final_merged_image = None
+        
         imgs = [Image.open(p).convert("RGBA") for p in self.images]
         
         # Vertical
@@ -136,28 +143,39 @@ class ImageMerger(QWidget):
                 new_img.paste(scaled, (x_offset, 0), scaled)
                 x_offset += scaled.width
 
-        # fast previews
+        # only show fast previews
         preview = new_img.copy()
         preview.thumbnail((800, 800))
         preview_rgb = preview.convert("RGB")
         preview_rgb.save("merged_preview.jpg", format="JPEG")
         self.preview.setPixmap(QPixmap('merged_preview.jpg').scaled(400, 400, Qt.KeepAspectRatio))
         
-            
+        self.final_merged_image = new_img
+    
+    # TODO: Fix Save-As label not reading correctly during output
+    def save_image_as(self):
+        if not hasattr(self, "final_merged_image") or self.final_merged_image is None:
+            print("Merge before save.")
+            return
+        
         label_to_format = {
             "PNG (Lossless)": "PNG",
             "JPG (Fast, Small)": "JPEG",
             "WebP (Efficient)": "WEBP"
         }
-        chosen_label = self.format_box.currentText()
-        chosen_format = label_to_format.get(chosen_label, "PNG")
-        ext = chosen_format.lower()
-        merged_path = f"merged_output.{ext}"
         
-        # if chosen_format.upper() == "JPEG":
-        #     new_img = new_img.convert("RGB")
-            
-        new_img.save(merged_path, format=chosen_format)
+        label = self.format_box.currentText()
+        fmt = label_to_format.get(label, "PNG")
+        ext = fmt.lower()
+
+        if fmt == "JPEG":
+            img = self.final_merged_image.convert("RGB")
+        else:
+            img = self.final_merged_image
+
+        output_path = f"merged_output.{ext}"
+        img.save(output_path, format=fmt)
+        print(f"Image saved as {output_path}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
