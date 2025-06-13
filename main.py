@@ -13,12 +13,12 @@ Version: 1.0.1
 """
 
 import sys
-from PyQt5.QtWidgets import (
+from PySide6.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout,
     QFileDialog, QRadioButton, QComboBox, QScrollArea
 )
-from PyQt5.QtGui import QPixmap, QDragEnterEvent, QDropEvent
-from PyQt5.QtCore import Qt
+from PySide6.QtGui import QPixmap, QDragEnterEvent, QDropEvent
+from PySide6.QtCore import Qt
 from PIL import Image, ImageOps
 import tempfile
 
@@ -239,4 +239,4 @@ if __name__ == "__main__":
     window = ImageMerger()
     window.resize(600, 700)
     window.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
