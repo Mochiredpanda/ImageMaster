@@ -96,7 +96,7 @@ class ImageMerger(QWidget):
         orientation_widget.setLayout(orientation_layout)
         btn_layout.addWidget(orientation_widget)
 
-        # = Merge Button = 
+        # = Merge Button Clickable = 
         merge_wrapper = QVBoxLayout()
         self.merge_btn = QPushButton("Merge")
         self.merge_btn.setFixedHeight(40)
@@ -106,15 +106,11 @@ class ImageMerger(QWidget):
         merge_wrapper.addStretch()
         btn_layout.addLayout(merge_wrapper)
         
-        # = Save-as =
+        # = Save-as Clickable =
         self.save_btn = QPushButton("Save as")
         self.save_btn.setFixedHeight(40)
         self.save_btn.setFixedWidth(100)
         btn_layout.addWidget(self.save_btn)
-        
-        self.format_box = QComboBox()
-        self.format_box.addItems(["PNG (default)", "JPG (fast, small)", "WEBP (efficient)"])
-        btn_layout.addWidget(self.format_box)
         
         self.merge_btn.clicked.connect(self.merge_images)
         self.save_btn.clicked.connect(self.save_image_as)
@@ -209,30 +205,46 @@ class ImageMerger(QWidget):
         
         self.final_merged_image = new_img
     
-    # TODO: Fix Save-As label not reading correctly during output
+    # Save as Button
+    # with pop-up window
     def save_image_as(self):
         if not hasattr(self, "final_merged_image") or self.final_merged_image is None:
             print("Merge before save.")
             return
         
-        label_to_format = {
-            "PNG (Lossless)": "PNG",
-            "JPG (Fast, Small)": "JPEG",
-            "WebP (Efficient)": "WEBP"
-        }
+        filters = "PNG (*.png);;JPEG (*.jpg *.jpeg);;WEBP (*.webp)"
+        default_save_path = "merged_output.png"
+        output_path, _ = QFileDialog.getSaveFileName(self, "Save as", default_save_path, filters)
         
-        label = self.format_box.currentText()
-        fmt = label_to_format.get(label, "PNG")
-        ext = fmt.lower()
+        if not output_path:
+            return
+
+        ext = output_path.split(".")[-1].lower() if '.' in output_path else ''
+        
+        fmt = None
+        if ext == "png":
+            fmt = "PNG"
+        elif ext in ["jpg", "jpeg"]:
+            fmt = "JPEG"
+        elif ext == "webp":
+            fmt = "WEBP"
+        else:
+            # if other format selected, default to PNG
+            if not output_path.lower().endswith('.png'):
+                 output_path += ".png"
+            fmt = "PNG"
+            print("Unsupported or missing extension. Saving as PNG.")
 
         if fmt == "JPEG":
             img = self.final_merged_image.convert("RGB")
         else:
             img = self.final_merged_image
-
-        output_path = f"merged_output.{ext}"
-        img.save(output_path, format=fmt)
-        print(f"Image saved as {output_path}")
+            
+        try:
+            img.save(output_path, format=fmt, quality=95)
+            print(f"Image saved as {output_path}")
+        except Exception as e:
+            print(f"Error saving image: {e}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
