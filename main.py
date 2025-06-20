@@ -19,25 +19,28 @@ from PySide6.QtWidgets import (
     QFileDialog, QRadioButton, QComboBox, QScrollArea
 )
 from PySide6.QtGui import QPixmap, QDragEnterEvent, QDropEvent
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSize
 from PIL import Image, ImageOps
-import tempfile
+import io
 
 # Image Snapshot
 class ImageCard(QLabel):
-    def __init__(self, image_path):
+    def __init__(self, pixmap, image_path):
         super().__init__()
         self.setFixedSize(120, 120)
-        self.setPixmap(QPixmap(image_path).scaled(120, 120, Qt.KeepAspectRatio))
+        self.setAlignment(Qt.AlignCenter)
+        self.setPixmap(pixmap)
         self.image_path = image_path
-
 class ImageMerger(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Image Merger")
         self.setAcceptDrops(True)
         self.images = []
+        
+        self.is_preview_ready = False
 
+        # TODO: Add clear queue opt
         # === MAIN CONTAINER ===
         main_layout = QHBoxLayout()
 
@@ -147,80 +150,110 @@ class ImageMerger(QWidget):
     #   Use RGBA and PNG as base format, only load previews
     def add_image(self, path):
         try:
+            # get Qpixmap for preview first
+            pixmap = QPixmap(path)
+            scaled_pixmap = pixmap.scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+    
             self.images.append(path)
             
-            # generate previews
-            preview = Image.open(path)
-            preview = ImageOps.exif_transpose(preview) # Fix orientation
-            preview.thumbnail((120, 120))
-            temp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
-            preview.save(temp.name, format="PNG")
-
-            thumbnail = ImageCard(temp.name)
+            thumbnail = ImageCard(scaled_pixmap.name)
             self.image_layout.insertWidget(self.image_layout.count() - 1, thumbnail)
         
         except Exception as e:
             print(f"Failed to load image {path}: {e}")  
       
-    # TODO: Fix the preview file saved to destination issue
-    # Output Image:
-    #   Use max_width / max_height as base size
+    # Merge Image:
+    # Generate fast, low-resolution for preview
     def merge_images(self):
         if not self.images:
             return
 
-        self.final_merged_image = None
+        PREVIEW_SIZE = (800, 800)
         
-        imgs = [Image.open(p).convert("RGBA") for p in self.images]
-        
+        imgs = []
+        for p in self.images:
+            img = Image.open(p).convert("RGBA")
+            img = ImageOps.exif_transpose(img)
+            img.thumbnail(PREVIEW_SIZE, Image.Resampling.LANCZOS)
+            imgs.append(img)
+                
         # Vertical
         if self.vertical_radio.isChecked():
             max_width = max(img.width for img in imgs)
             total_height = sum(int(img.height * (max_width / img.width)) for img in imgs)
-            new_img = Image.new("RGBA", (max_width, total_height), (255, 255, 255, 0))
+            preview_img = Image.new("RGBA", (max_width, total_height), (255, 255, 255, 0))
             
             y_offset = 0
             for img in imgs:
-                scaled = img.resize((max_width, int(img.height * (max_width / img.width))))
-                new_img.paste(scaled, (0, y_offset), scaled)
+                scaled = img.resize((max_width, int(img.height * (max_width / img.width))), Image.Resampling.LANCZOS)
+                preview_img.paste(scaled, (0, y_offset), scaled)
                 y_offset += scaled.height
         
         # Horizontal
         else:
             max_height = max(img.height for img in imgs)
             total_width = sum(int(img.width * (max_height / img.height)) for img in imgs)
-            new_img = Image.new("RGBA", (total_width, max_height), (255, 255, 255, 0))
+            preview_img = Image.new("RGBA", (total_width, max_height), (255, 255, 255, 0))
             
             x_offset = 0
             for img in imgs:
-                scaled = img.resize((int(img.width * (max_height / img.height)), max_height))
-                new_img.paste(scaled, (x_offset, 0), scaled)
+                scaled = img.resize((int(img.width * (max_height / img.height)), max_height), Image.Resampling.LANCZOS)
+                preview_img.paste(scaled, (x_offset, 0), scaled)
                 x_offset += scaled.width
 
-        # only show fast previews
-        preview = new_img.copy()
-        preview.thumbnail((800, 800))
-        preview_rgb = preview.convert("RGB")
-        preview_rgb.save("merged_preview.jpg", format="JPEG")
-        self.preview.setPixmap(QPixmap('merged_preview.jpg').scaled(400, 400, Qt.KeepAspectRatio))
-        
-        self.final_merged_image = new_img
-    
-    # Save as Button
-    # with pop-up window
+        # Display the merged preview
+        buffer = io.BytesIO()
+        preview_img.save(buffer, format="PNG")
+        pixmap = QPixmap()
+        pixmap.loadFromData(buffer.getvalue())
+        self.preview.setPixmap(pixmap)
+        self.preview.setPixmap(pixmap.scaled(500, 500, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+        self.is_preview_ready = True
+
+    # TODO: change save as destination as downloads
+    # Perform saving high-quality merge and save (real merge)
     def save_image_as(self):
-        if not hasattr(self, "final_merged_image") or self.final_merged_image is None:
-            print("Merge before save.")
+        if not self.images:
+            print("No images to save.")
             return
+
+        if not self.is_preview_ready:
+            self.merge_images()
         
-        filters = "PNG (*.png);;JPEG (*.jpg *.jpeg);;WEBP (*.webp)"
-        default_save_path = "merged_output.png"
-        output_path, _ = QFileDialog.getSaveFileName(self, "Save as", default_save_path, filters)
+        # perform merging
+        imgs = [ImageOps.exif_transpose(Image.open(p).convert("RGBA")) for p in self.images]
+        
+        if self.vertical_radio.isChecked():
+            max_width = max(img.width for img in imgs)
+            total_height = sum(int(img.height * (max_width / img.width)) for img in imgs)
+            final_img = Image.new("RGBA", (max_width, total_height), (255, 255, 255, 0))
+            
+            y_offset = 0
+            for img in imgs:
+                scaled = img.resize((max_width, int(img.height * (max_width / img.width))), Image.Resampling.LANCZOS)
+                final_img.paste(scaled, (0, y_offset), scaled)
+                y_offset += scaled.height
+        else:
+            max_height = max(img.height for img in imgs)
+            total_width = sum(int(img.width * (max_height / img.height)) for img in imgs)
+            final_img = Image.new("RGBA", (total_width, max_height), (255, 255, 255, 0))
+            x_offset = 0
+            for img in imgs:
+                scaled = img.resize((int(img.width * (max_height / img.height)), max_height), Image.Resampling.LANCZOS)
+                final_img.paste(scaled, (x_offset, 0), scaled)
+                x_offset += scaled.width
+        
+        filters = "PNG (*.png);;JPEG (*.jpg *.jpeg);;WebP (*.webp)"
+        default_save_path = "merged_img.png"
+        
+        output_path, _ = QFileDialog.getSaveFileName(self, "Save Image As", default_save_path, filters)
         
         if not output_path:
             return
 
-        ext = output_path.split(".")[-1].lower() if '.' in output_path else ''
+        # Determine format from file extension
+        ext = output_path.split('.')[-1].lower() if '.' in output_path else ''
         
         fmt = None
         if ext == "png":
@@ -230,19 +263,19 @@ class ImageMerger(QWidget):
         elif ext == "webp":
             fmt = "WEBP"
         else:
-            # if other format selected, default to PNG
+            # default PNG
             if not output_path.lower().endswith('.png'):
                  output_path += ".png"
             fmt = "PNG"
             print("Unsupported or missing extension. Saving as PNG.")
-
+            
         if fmt == "JPEG":
-            img = self.final_merged_image.convert("RGB")
+            img_to_save = final_img.convert("RGB")
         else:
-            img = self.final_merged_image
+            img_to_save = final_img
             
         try:
-            img.save(output_path, format=fmt, quality=95)
+            img_to_save.save(output_path, format=fmt, quality=95)
             print(f"Image saved as {output_path}")
         except Exception as e:
             print(f"Error saving image: {e}")
