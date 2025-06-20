@@ -16,10 +16,10 @@ Version: 1.0.2
 import sys
 from PySide6.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout,
-    QFileDialog, QRadioButton, QComboBox, QScrollArea
+    QFileDialog, QRadioButton, QScrollArea
 )
 from PySide6.QtGui import QPixmap, QDragEnterEvent, QDropEvent
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtCore import Qt, QSize, QStandardPaths
 from PIL import Image, ImageOps
 import io
 
@@ -31,6 +31,7 @@ class ImageCard(QLabel):
         self.setAlignment(Qt.AlignCenter)
         self.setPixmap(pixmap)
         self.image_path = image_path
+
 class ImageMerger(QWidget):
     def __init__(self):
         super().__init__()
@@ -210,7 +211,6 @@ class ImageMerger(QWidget):
 
         self.is_preview_ready = True
 
-    # TODO: change save as destination as downloads
     # Perform saving high-quality merge and save (real merge)
     def save_image_as(self):
         if not self.images:
@@ -244,7 +244,10 @@ class ImageMerger(QWidget):
                 x_offset += scaled.width
         
         filters = "PNG (*.png);;JPEG (*.jpg *.jpeg);;WebP (*.webp)"
-        default_save_path = "merged_img.png"
+        
+        # set downloads folder as default save path
+        downloads_dir = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DownloadLocation)
+        default_save_path = f"{downloads_dir}/merged_image.png"
         
         output_path, _ = QFileDialog.getSaveFileName(self, "Save Image As", default_save_path, filters)
         
