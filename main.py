@@ -7,6 +7,11 @@ Current Features:
 - Add images and merge vertically or horizontally.
 - Save images in common formats: PNG, JPEG, WebP.
 
+Future Features:
+- Mordern UI
+- Packaging .py script as a macOS native app
+- Add border line tools for images
+
 Author: Jiyu H.(Mochiredpanda)
 Date: JUN 20, 2025
 License: MIT
@@ -45,7 +50,14 @@ class ImageMerger(QWidget):
         # === MAIN CONTAINER ===
         main_layout = QHBoxLayout()
 
-        # TODO: Fix + button align center after images added
+        # TODO: Fix preview list issues
+        #   1. add button "+" not aligned to center when images added
+        #   2. UI improvement: better preview box size and list size
+        
+        # TODO: Fix widget alignment issue under large size interface
+        
+        # TODO: Modern UI
+        
         # == LEFT: Scrollable Preview List ==
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -148,7 +160,7 @@ class ImageMerger(QWidget):
             self.add_image(f)
 
     # Input Image:
-    #   Use RGBA and PNG as base format, only load previews
+    # Load Qpixmap for fast previewing
     def add_image(self, path):
         try:
             # get Qpixmap for preview first
