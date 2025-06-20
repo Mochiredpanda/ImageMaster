@@ -156,7 +156,7 @@ class ImageMerger(QWidget):
     
             self.images.append(path)
             
-            thumbnail = ImageCard(scaled_pixmap.name)
+            thumbnail = ImageCard(scaled_pixmap, path)
             self.image_layout.insertWidget(self.image_layout.count() - 1, thumbnail)
         
         except Exception as e:
@@ -206,7 +206,6 @@ class ImageMerger(QWidget):
         preview_img.save(buffer, format="PNG")
         pixmap = QPixmap()
         pixmap.loadFromData(buffer.getvalue())
-        self.preview.setPixmap(pixmap)
         self.preview.setPixmap(pixmap.scaled(500, 500, Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
         self.is_preview_ready = True
