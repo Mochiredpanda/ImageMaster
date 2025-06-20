@@ -1,15 +1,16 @@
 """
-ImageMaster
+ImageMerger - v1.0.2
 
-A lightweight desktop GUI app to preview edit images.
+A lightweight desktop GUI app to merge images.
 
 Current Features:
-- ImageMerger: Add images and merge vertically or horizontally.
+- Add images and merge vertically or horizontally.
+- Save images in common formats: PNG, JPEG, WebP.
 
 Author: Jiyu H.(Mochiredpanda)
-Date: JUN 12, 2025
+Date: JUN 20, 2025
 License: MIT
-Version: 1.0.1
+Version: 1.0.2
 """
 
 import sys
